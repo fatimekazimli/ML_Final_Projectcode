@@ -1,0 +1,53 @@
+\documentclass[aspectratio=169]{beamer}
+\usetheme{Madrid}
+\usecolortheme{default}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\title{Decision Tree Contribution}
+\author{Ilaha Gadirli}
+\date{}
+\begin{document}
+
+\begin{frame}{Decision Tree built from scratch}
+\begin{columns}[T]
+\begin{column}{0.48\textwidth}
+\begin{itemize}
+\item NumPy tree for log-price regression and premium/standard classification.
+\item Sort each feature; test midpoints of adjacent distinct values.
+\item Maximize impurity decrease: MSE, Gini, or entropy.
+\item Four growth controls: depth, split size, leaf size, and minimum gain.
+\item Leaf output: mean target or class frequencies.
+\end{itemize}
+\end{column}
+\begin{column}{0.52\textwidth}
+\includegraphics[width=\linewidth]{../report/figures/tree_classification_depth.png}
+\end{column}
+\end{columns}
+\vspace{0.3em}
+\small Validation selected entropy, depth 8, and at least 20 samples per leaf.
+\end{frame}
+
+\begin{frame}{Tree results and failure modes}
+\small
+\begin{tabular}{@{}lrr@{}}
+\toprule
+Held-out metric & Our tree & Matched sklearn tree \\
+\midrule
+Price RMSE (AZN) & 389{,}483 & 389{,}485 \\
+Price MAE (AZN) & 103{,}067 & 103{,}057 \\
+Tier F1 & 0.8853 & 0.8853 \\
+Tier ROC-AUC & 0.9513 & 0.9513 \\
+\bottomrule
+\end{tabular}
+\vspace{0.8em}
+
+\begin{itemize}
+\item Same 5{,}000 train rows; validation and test use full splits (9{,}406 each).
+\item Tier errors: 42.1\% near the 212{,}000 AZN boundary, versus 11.3\% overall.
+\item Price MAE: 566{,}294 AZN for luxury listings; 714{,}521 AZN for land plots.
+\end{itemize}
+\vspace{0.4em}
+\footnotesize This is a single held-out split. The team benchmark supplies cross-validation uncertainty.
+\end{frame}
+
+\end{document}
