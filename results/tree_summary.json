@@ -1,0 +1,166 @@
+{
+  "raw_rows": 100775,
+  "unique_listing_rows": 64454,
+  "clean_rows": 62703,
+  "usd_rows": 0,
+  "train_rows": 43891,
+  "validation_rows": 9406,
+  "test_rows": 9406,
+  "fit_rows": 5000,
+  "feature_count": 58,
+  "tier_threshold_AZN": 212000.0,
+  "selected_regression": {
+    "criterion": "mse",
+    "max_depth": 12,
+    "min_samples_leaf": 5,
+    "train_RMSE": 368463.02812726586,
+    "validation_RMSE": 461297.4019177651,
+    "leaves": 339
+  },
+  "class_balance": {
+    "train": 21932,
+    "validation": 4703,
+    "test": 4706
+  },
+  "selected_classification": {
+    "criterion": "entropy",
+    "max_depth": 8,
+    "min_samples_leaf": 20,
+    "train_F1": 0.8976541415818973,
+    "validation_F1": 0.8902333621434745,
+    "validation_AUC": 0.9543166221098643,
+    "leaves": 82
+  },
+  "diagnostics": {
+    "regression_mae_all": 103066.95199522111,
+    "regression_mae_luxury": 566293.698387456,
+    "regression_mae_rare_location": 384329.5225698572,
+    "classification_error_all": 0.11311928556240697,
+    "classification_error_near_threshold": 0.42115384615384616,
+    "classification_error_rare_location": 0.15789473684210525,
+    "luxury_test_rows": 933,
+    "rare_location_test_rows": 114,
+    "near_threshold_test_rows": 1040,
+    "category_errors": {
+      "Həyət evi/Bağ evi": {
+        "count": 1446,
+        "regression_mae_AZN": 136452.90285504155,
+        "classification_error": 0.12448132780082988
+      },
+      "Köhnə tikili": {
+        "count": 1776,
+        "regression_mae_AZN": 30916.51396711897,
+        "classification_error": 0.07713963963963964
+      },
+      "Obyekt": {
+        "count": 370,
+        "regression_mae_AZN": 578026.1666136137,
+        "classification_error": 0.17027027027027028
+      },
+      "Torpaq": {
+        "count": 279,
+        "regression_mae_AZN": 714521.441937973,
+        "classification_error": 0.30824372759856633
+      },
+      "Yeni tikili": {
+        "count": 5501,
+        "regression_mae_AZN": 53918.55475604556,
+        "classification_error": 0.10870750772586803
+      }
+    },
+    "confusion_matrix": [
+      [
+        4237,
+        463
+      ],
+      [
+        601,
+        4105
+      ]
+    ],
+    "top_regression_features": [
+      [
+        "area",
+        0.6003138804298043
+      ],
+      [
+        "lng",
+        0.11853933093263296
+      ],
+      [
+        "category_Həyət evi/Bağ evi",
+        0.09878435294508464
+      ],
+      [
+        "lat",
+        0.05638067182918304
+      ],
+      [
+        "land_area",
+        0.03936889740769783
+      ],
+      [
+        "category_Torpaq",
+        0.036741309131739855
+      ],
+      [
+        "category_Obyekt",
+        0.011532803864757827
+      ],
+      [
+        "location_other",
+        0.009633743933119273
+      ],
+      [
+        "deed_unknown",
+        0.007822670219811947
+      ],
+      [
+        "location_Ağ şəhər q.",
+        0.00760986799040078
+      ]
+    ],
+    "top_classification_features": [
+      [
+        "area",
+        0.5781489774291036
+      ],
+      [
+        "lng",
+        0.1594722816669597
+      ],
+      [
+        "land_area",
+        0.08314732757235817
+      ],
+      [
+        "lat",
+        0.06250189625338633
+      ],
+      [
+        "location_other",
+        0.04339381305070346
+      ],
+      [
+        "category_Torpaq",
+        0.034668490875460665
+      ],
+      [
+        "category_Həyət evi/Bağ evi",
+        0.007552473726619894
+      ],
+      [
+        "category_Yeni tikili",
+        0.006261648345200764
+      ],
+      [
+        "category_Köhnə tikili",
+        0.005632499008450299
+      ],
+      [
+        "total_floors",
+        0.005436194334160633
+      ]
+    ]
+  }
+}
