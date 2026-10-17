@@ -24,7 +24,7 @@
 \end{column}
 \end{columns}
 \vspace{0.3em}
-\small Validation selected entropy, depth 8, and at least 20 samples per leaf.
+\small Validation selected Gini, depth 9, and at least 1 sample per leaf.
 \end{frame}
 
 \begin{frame}{Tree results and failure modes}
@@ -33,18 +33,18 @@
 \toprule
 Held-out metric & Our tree & Matched sklearn tree \\
 \midrule
-Price RMSE (AZN) & 389{,}483 & 389{,}485 \\
-Price MAE (AZN) & 103{,}067 & 103{,}057 \\
-Tier F1 & 0.8853 & 0.8853 \\
-Tier ROC-AUC & 0.9513 & 0.9513 \\
+Price RMSE (AZN) & 391{,}531 & 391{,}531 \\
+Price MAE (AZN) & 99{,}840 & 99{,}840 \\
+Tier F1 & 0.8952 & 0.8956 \\
+Tier ROC-AUC & 0.9251 & 0.9246 \\
 \bottomrule
 \end{tabular}
 \vspace{0.8em}
 
 \begin{itemize}
 \item Same 5{,}000 train rows; validation and test use full splits (9{,}406 each).
-\item Tier errors: 42.1\% near the 212{,}000 AZN boundary, versus 11.3\% overall.
-\item Price MAE: 566{,}294 AZN for luxury listings; 714{,}521 AZN for land plots.
+\item Tier errors: 35.9\% near the 212{,}000 AZN boundary, versus 10.6\% overall.
+\item Price MAE: 547{,}009 AZN for luxury listings; 663{,}872 AZN for land plots.
 \end{itemize}
 \vspace{0.4em}
 \footnotesize This is a single held-out split. The team benchmark supplies cross-validation uncertainty.

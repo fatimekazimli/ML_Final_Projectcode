@@ -15,84 +15,12 @@ import numpy as np
 import pandas as pd
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
 
+from . import data_prep as dp
 from . import evaluate as ev
 from .decision_tree import DecisionTree
 
 
-NUMERIC = ["area", "rooms", "floor", "total_floors", "land_area", "lat", "lng"]
-CATEGORICAL = ["building_type", "category", "repair", "mortgage", "deed", "city", "location"]
-PRICE_BINS = np.array([50_000, 100_000, 200_000, 350_000, 500_000, 1_000_000])
 SEED = 42
-
-
-def number(series):
-    text = series.astype(str).str.replace("\u00a0", "", regex=False).str.replace(" ", "", regex=False)
-    text = text.str.replace(",", ".", regex=False)
-    return pd.to_numeric(text.str.extract(r"(\d+(?:\.\d+)?)")[0], errors="coerce")
-
-
-def load_clean(path):
-    raw = pd.read_csv(path, encoding="utf-8", low_memory=False)
-    initial = len(raw)
-    raw = raw.sort_values("datetime_scrape_x").drop_duplicates("estate_rel_url_x", keep="last")
-    price = pd.to_numeric(raw["price"], errors="coerce")
-    usd = raw["currency_x"].astype(str).str.upper().eq("USD")
-    price = price.where(~usd, price * 1.70)
-    floor = raw["Mərtəbə"].astype(str).str.extract(r"(\d+)\s*/\s*(\d+)")
-    land = number(raw["Torpaq sahəsi"])
-    land = land.where(~raw["Torpaq sahəsi"].astype(str).str.contains("sot", case=False), land * 100)
-    data = pd.DataFrame({
-        "price": price,
-        "area": number(raw["Sahə"]),
-        "rooms": number(raw["Otaq sayı"]),
-        "floor": pd.to_numeric(floor[0], errors="coerce"),
-        "total_floors": pd.to_numeric(floor[1], errors="coerce"),
-        "land_area": land,
-        "lat": pd.to_numeric(raw["lat"], errors="coerce"),
-        "lng": pd.to_numeric(raw["lng"], errors="coerce"),
-        "building_type": raw["Binanın növü"],
-        "category": raw["Kateqoriya"],
-        "repair": raw["repair"],
-        "mortgage": raw["mortgage"],
-        "deed": raw["bill_of_sale"],
-        "city": raw["city"],
-        "location": raw["location"],
-    })
-    keep = data["price"].between(5_000, 20_000_000)
-    keep &= data["area"].isna() | data["area"].between(10, 2_000)
-    data = data.loc[keep].reset_index(drop=True)
-    return data, {"raw_rows": initial, "unique_listing_rows": len(raw), "clean_rows": len(data), "usd_rows": int(usd.sum())}
-
-
-def split_indices(y):
-    rng = np.random.default_rng(SEED)
-    strata = np.digitize(y, PRICE_BINS)
-    train, validation, test = [], [], []
-    for stratum in np.unique(strata):
-        indices = rng.permutation(np.flatnonzero(strata == stratum))
-        n_test = round(len(indices) * 0.15)
-        n_validation = round(len(indices) * 0.15)
-        test.extend(indices[:n_test])
-        validation.extend(indices[n_test:n_test + n_validation])
-        train.extend(indices[n_test + n_validation:])
-    return np.asarray(train), np.asarray(validation), np.asarray(test)
-
-
-def encode(data, train, validation, test):
-    train_frame = data.iloc[train]
-    medians = train_frame[NUMERIC].median().fillna(0)
-    common_locations = set(train_frame["location"].fillna("unknown").value_counts().head(25).index)
-    frames = []
-    for indices in (train, validation, test):
-        frame = data.iloc[indices]
-        numeric = frame[NUMERIC].fillna(medians).reset_index(drop=True).astype(float)
-        categories = frame[CATEGORICAL].fillna("unknown").astype(str).reset_index(drop=True)
-        categories["location"] = categories["location"].where(
-            categories["location"].isin(common_locations), "other"
-        )
-        frames.append(pd.concat([numeric, pd.get_dummies(categories, dtype=float)], axis=1))
-    names = frames[0].columns.tolist()
-    return tuple(frame.reindex(columns=names, fill_value=0).to_numpy(dtype=float) for frame in frames), names
 
 
 def regression_scores(y, prediction):
@@ -216,33 +144,23 @@ def plot_importance(model, names, path):
     plt.close(fig)
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--data", default="data/bina_az_sale.csv")
-    parser.add_argument("--train-cap", type=int, default=5_000)
-    args = parser.parse_args()
-    if args.train_cap < 100:
-        parser.error("--train-cap must be at least 100")
-
-    root = Path(__file__).resolve().parents[1]
+def run(d, train_cap=5_000, root=None):
+    root = Path(root) if root else Path(__file__).resolve().parents[1]
     output = root / "results"
     figures = root / "report" / "figures"
     output.mkdir(parents=True, exist_ok=True)
     figures.mkdir(parents=True, exist_ok=True)
-    data, counts = load_clean(root / args.data)
-    train, validation, test = split_indices(data.price.to_numpy())
-    arrays, names = encode(data, train, validation, test)
-    X_train, X_validation, X_test = arrays
-    y_train = data.price.to_numpy()[train]
-    y_validation = data.price.to_numpy()[validation]
-    y_test = data.price.to_numpy()[test]
-    threshold = float(np.median(y_train))
-    tier_train = (y_train > threshold).astype(int)
-    tier_validation = (y_validation > threshold).astype(int)
-    tier_test = (y_test > threshold).astype(int)
+    data, counts = d["data"], {k: d["info"][k] for k in ("raw_rows", "unique_listing_rows", "clean_rows", "usd_rows")}
+    train, validation, test = d["train"], d["val"], d["test"]
+    names = d["names"]
+    X_train, X_validation, X_test = d["X_tr"], d["X_val"], d["X_te"]
+    y_train, y_validation, y_test = d["y_tr"], d["y_val"], d["y_te"]
+    threshold = d["thr"]
+    tier_train, tier_validation, tier_test = d["t_tr"], d["t_val"], d["t_te"]
 
     rng = np.random.default_rng(SEED)
-    chosen = np.sort(rng.choice(len(train), min(args.train_cap, len(train)), replace=False))
+    cap = len(train) if not train_cap else min(train_cap, len(train))
+    chosen = np.sort(rng.choice(len(train), cap, replace=False))
     X_fit, price_fit, tier_fit = X_train[chosen], y_train[chosen], tier_train[chosen]
     selected_regression = tune_regression(X_fit, price_fit, X_validation, y_validation, output)
     selected_classification = tune_classification(X_fit, tier_fit, X_validation, tier_validation, output)
@@ -316,6 +234,20 @@ def main():
     (output / "tree_summary.json").write_text(json.dumps(summary, indent=2, ensure_ascii=False))
     print(json.dumps(summary, indent=2, ensure_ascii=False))
     print(pd.DataFrame(rows).to_string(index=False))
+    return {"rows": rows, "summary": summary,
+            "regression_args": regression_args, "classification_args": classification_args}
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--data", default=dp.DATA_PATH)
+    parser.add_argument("--train-cap", type=int, default=5_000, help="0 = use the full training split")
+    args = parser.parse_args()
+    if 0 < args.train_cap < 100:
+        parser.error("--train-cap must be 0 (full train) or at least 100")
+    root = Path(__file__).resolve().parents[1]
+    run(dp.prepare(root / args.data), args.train_cap, root)
+
 
 
 if __name__ == "__main__":
