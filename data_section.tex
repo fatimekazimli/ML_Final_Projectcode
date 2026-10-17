@@ -1,0 +1,107 @@
+% Data and Preprocessing -- Person 1 (Fatime Kazimli)
+% every number here comes from report/numbers.tex, written by python -m src.run_all
+
+We use version~1 of the Kaggle \emph{Binaaz sale project}
+dataset\footnote{\url{https://www.kaggle.com/datasets/sehriyarmemmedli/binaaz-sale-project}},
+a raw scrape of sale listings from bina.az (\texttt{house\_sale.csv},
+downloaded 16~October~2026). It contains \RawRows{} rows. All cleaning is
+implemented in \texttt{src/data\_prep.py}.
+
+\paragraph{Cleaning}
+The same listing is scraped repeatedly, so we keep only the latest scrape of
+each listing URL (\UniqueRows{} unique listings). Prices are converted to AZN
+at a fixed 1.70~AZN/USD rate (\UsdRows{} USD rows in this snapshot).
+Text-encoded numbers are parsed: floor area (``85~m\textsuperscript{2}''),
+rooms, floor and building height (``5~/~12'' gives \texttt{floor} and
+\texttt{total\_floors}), and land area, where values in \emph{sot} are
+converted to m\textsuperscript{2} (1~sot $=100$~m\textsuperscript{2}). We
+apply fixed plausibility bounds chosen by hand, not estimated from data:
+5{,}000--20{,}000{,}000~AZN for price and 10--2{,}000~m\textsuperscript{2}
+for floor area when present. Rows with a missing price are dropped, never
+imputed. \CleanRows{} listings remain.
+
+\paragraph{Leakage}
+Features are taken from an explicit allow-list (7 numeric: area, rooms,
+floor, total floors, land area, latitude, longitude; 7 categorical:
+building type, category, repair, mortgage, bill of sale, city, district),
+so every other column is excluded by construction. The target-derived
+columns we removed are: \LeakageCols{}. They are arithmetic functions of the
+price and would make validation scores meaningless. Identifiers, URLs,
+scrape timestamps and free text are also excluded. The full list of
+excluded raw columns is: \ExcludedCols{}.
+
+\paragraph{Encoding and split}
+We split before computing any statistic. The split is stratified by fixed
+AZN price bands (50k, 100k, 200k, 350k, 500k, 1M) with seed 42, giving
+\TrainRows{} training, \ValRows{} validation and \TestRows{} test listings
+(70/15/15). Numeric medians for imputation, the 25 most frequent districts
+(the rest become ``other'') and the one-hot columns are learned on the
+training rows only, giving \FeatureCount{} features. Features are
+standardised with training mean and standard deviation for the SVM; trees
+use them unscaled.
+
+\paragraph{Two tasks}
+Task~A predicts the sale price. Prices are heavy-tailed
+(Fig.~\ref{fig:eda_price}), so models are trained on $\log(\text{price})$ and
+scored with RMSE, MAE and $R^2$ in AZN (and on the log scale in
+cross-validation). Task~B predicts a price tier: premium if the price is
+above the training median of \TierThreshold{}~AZN, standard otherwise. The
+threshold is fixed from the training split and applied unchanged to
+validation and test, so \PremiumShareTrain\% of training listings are
+premium (Fig.~\ref{fig:eda_balance}). Task~B is scored with precision,
+recall, F1, ROC-AUC and the confusion matrix.
+
+\paragraph{Exploration}
+All exploratory plots use training rows only. Raw price has a long right
+tail that the log transform largely removes (Fig.~\ref{fig:eda_price}),
+which motivates modelling $\log(\text{price})$. Fig.~\ref{fig:eda_area}
+shows floor area against price per property category, and
+Fig.~\ref{fig:eda_map} shows prices on the map; floor area, longitude and
+latitude are also among the most important tree features
+(Sec.~\ref{sec:tree}), which is why the coordinates and district are kept.
+
+\begin{table}[t]
+  \centering
+  \caption{Dataset summary after cleaning.}
+  \label{tab:data}
+  \begin{tabular}{@{}lr@{}}
+    \toprule
+    Property & Value \\
+    \midrule
+    Raw rows / unique listings  & \RawRows{} / \UniqueRows{} \\
+    Rows after cleaning         & \CleanRows{} \\
+    Features used               & \FeatureCount{} \\
+    Train / Val / Test          & \TrainRows{} / \ValRows{} / \TestRows{} \\
+    Tier threshold (AZN)        & \TierThreshold{} \\
+    Premium share, train (\%)   & \PremiumShareTrain{} \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\linewidth]{figures/fig_price_hist.png}
+  \caption{Training prices: raw AZN (left) and log scale with the tier threshold (right).}
+  \label{fig:eda_price}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.85\linewidth]{figures/fig_area_vs_price.png}
+  \caption{Floor area against price (log--log) for the five largest categories.}
+  \label{fig:eda_area}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.85\linewidth]{figures/fig_map_latlng.png}
+  \caption{Listing coordinates coloured by log(price).}
+  \label{fig:eda_map}
+\end{figure}
+
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=0.8\linewidth]{figures/fig_tier_balance.png}
+  \caption{Standard vs premium counts in each split.}
+  \label{fig:eda_balance}
+\end{figure}

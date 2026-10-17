@@ -1,0 +1,195 @@
+% =====================================================================
+%  IEEE-STYLE CONFERENCE REPORT TEMPLATE  (self-contained)
+%  MLE-AI-201 Machine Learning -- Final Project
+%
+%  This template MIMICS the IEEE two-column conference look using only
+%  standard LaTeX packages. It does NOT depend on IEEEtran.cls, so it
+%  compiles anywhere (tectonic, pdflatex, Overleaf) with nothing extra.
+%
+%  Build:   tectonic report.tex      (recommended)
+%     or:   pdflatex report.tex ; pdflatex report.tex
+% =====================================================================
+\documentclass[10pt,twocolumn,a4paper]{article}
+
+% ---- Geometry: IEEE-like margins / two narrow columns ----------------
+\usepackage[a4paper,top=0.75in,bottom=1.0in,left=0.68in,right=0.68in,columnsep=0.25in]{geometry}
+
+% ---- Times-like font (standard, ships with every TeX distro) ---------
+\usepackage{mathptmx}          % Times text + math
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}    % allows accented / Azerbaijani chars
+
+% ---- Common, dependency-free packages --------------------------------
+\usepackage{graphicx}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{titlesec}
+\usepackage{caption}
+\usepackage{cite}
+\usepackage[hidelinks]{hyperref}
+\usepackage{url}
+
+% ---- IEEE-style section headings -------------------------------------
+\renewcommand{\thesection}{\Roman{section}}
+\renewcommand{\thesubsection}{\Alph{subsection}}
+\titleformat{\section}[block]{\centering\normalsize\scshape}{\thesection.}{0.5em}{}
+\titleformat{\subsection}[block]{\normalsize\itshape}{\thesubsection.}{0.5em}{}
+\titlespacing*{\section}{0pt}{1.4ex plus 1ex minus .2ex}{1ex}
+\titlespacing*{\subsection}{0pt}{1.0ex plus 1ex minus .2ex}{0.6ex}
+
+% ---- Abstract / Index-Terms in the IEEE boldface-dash style ----------
+\newcommand{\abstractkw}[1]{\noindent\textbf{\textit{#1}}}
+
+\captionsetup{font=small,labelsep=period}
+\setlength{\parindent}{1em}
+
+\usepackage[safe]{tipa}
+\DeclareUnicodeCharacter{0259}{\textschwa}
+\DeclareUnicodeCharacter{018F}{\textschwa}
+\input{numbers}
+
+% =====================================================================
+\begin{document}
+
+\twocolumn[
+  \begin{@twocolumnfalse}
+  \begin{center}
+    {\LARGE\bfseries Pricing Bina.az Listings from Scratch:\\Decision Trees and Pegasos SVMs vs.\ scikit-learn\par}
+    \vspace{1.2em}
+    {\large
+      Allahverdi, Yunis\quad Gadirli, Ilaha\quad Kazimli, Fatime\par}
+    \vspace{0.5em}
+    {\itshape MLE-AI-201 Machine Learning, AI Academy --- Cohort II\par}
+    \vspace{1.4em}
+  \end{center}
+  \begin{quote}
+    \small
+    \abstractkw{Abstract---}%
+    We predict sale prices of Azerbaijani real-estate listings scraped from
+    bina.az and frame the same data as two tasks: price regression
+    (Task~A) and a premium/standard price-tier classification at the
+    training median of \TierThreshold{}~AZN (Task~B). After deduplicating
+    repeated scrapes and removing target-derived columns, \CleanRows{}
+    listings remain. We implement a decision tree (Gini, entropy and MSE
+    splits) and a soft-margin SVM trained with the Pegasos sub-gradient
+    method, with a random-Fourier-feature extension, in NumPy only, and
+    compare them with scikit-learn under matched settings. On the held-out
+    test split our tree reaches $R^2=\TreeRtwo$ for price and F1~$=\TreeFone$
+    for the tier, while the linear Pegasos SVM reaches F1~$=\SvmFone$
+    (AUC~$\SvmAuc$). Our models track their scikit-learn counterparts
+    closely, and tier error rates are highest for listings priced near the
+    threshold.
+    Code: \href{https://github.com/fatimekazimli/ML_Final_Projectcode}{\texttt{github.com/fatimekazimli/ML\_Final\_Projectcode}}
+    (tag \texttt{v1.0-final}).
+
+    \vspace{0.6em}
+    \abstractkw{Index Terms---}decision tree, support-vector machine,
+    Pegasos, random Fourier features, real-estate price prediction.
+  \end{quote}
+  \vspace{1.0em}
+  \end{@twocolumnfalse}
+]
+
+% =====================================================================
+\section{Introduction}
+Listing prices on bina.az, Azerbaijan's largest real-estate platform, vary
+by orders of magnitude with size, property type and location. We use a raw
+scrape of these listings to study two classical models from the inside.
+Our contributions are: (i) a documented, leakage-free cleaning and split of
+a messy scraped dataset; (ii) a NumPy decision tree for both regression and
+classification, verified against scikit-learn on toy data; (iii) a NumPy
+Pegasos SVM with a random-Fourier-feature (RFF) extension, verified to
+reach the same objective as \texttt{LinearSVC}; and (iv) a matched
+benchmark against scikit-learn with cross-validated uncertainty and timing,
+plus an error analysis. Every number in this report is produced by one
+command, \texttt{python -m src.run\_all}.
+
+\section{Background}
+A decision tree recursively splits the feature space with axis-aligned
+thresholds that maximise the decrease of an impurity measure (Gini or
+entropy for classes, variance for regression). A soft-margin SVM finds the
+hyperplane that minimises the regularised hinge loss; the Pegasos
+algorithm~\cite{pegasos} solves this primal problem with stochastic
+sub-gradient steps instead of a quadratic program. Random Fourier
+features~\cite{rff} approximate an RBF kernel with an explicit
+finite-dimensional map, so a linear solver can learn a non-linear boundary.
+
+\section{Data and Preprocessing}
+\label{sec:data}
+\input{data_section}
+
+\section{Decision Tree}
+\label{sec:tree}
+\input{tree_section}
+
+\section{Support-Vector Machine}
+\label{sec:svm}
+\input{svm_section}
+
+\section{Results}
+\label{sec:results}
+Table~\ref{tab:results} reports held-out test metrics and
+Table~\ref{tab:cv} the cross-validated mean $\pm$ std and timing for all
+models. On Task~A our tree reaches RMSE \TreeRmse{}~AZN, MAE
+\TreeMae{}~AZN and $R^2=\TreeRtwo$ on the test split. On Task~B our tree
+reaches F1~$=\TreeFone$ (AUC~$\TreeAuc$), the linear Pegasos SVM
+F1~$=\SvmFone$ (AUC~$\SvmAuc$) and the RFF SVM F1~$=\RffFone$
+(AUC~$\RffAuc$). Each from-scratch model should be read against its
+matched scikit-learn row rather than against the other model family. Our
+implementations are slower to fit than the compiled scikit-learn code, as
+the timing columns show.
+
+\input{results_table}
+
+\section{Discussion and Limitations}
+Errors concentrate where the task is intrinsically ambiguous: for Task~B,
+listings priced close to the tier threshold
+(Sec.~\ref{sec:tree}, Fig.~\ref{fig:svm_errors}), and for Task~A, luxury
+listings and land plots, whose AZN errors dominate RMSE. The trees are fit
+on a seeded \TreeFitRows{}-row sample of the training split because the
+Python implementation is slow, and the RBF \texttt{SVC} baseline is fit on
+a 5{,}000-row subsample because its cost grows quadratically with $n$;
+both choices are applied identically to our model and its matched
+baseline. Impurity-based importances and SVM weights describe the fitted
+models and are not causal effects. The data are one scrape of asking
+prices, not transaction prices, and free-text descriptions were not used.
+Next steps are ensembles of our trees, text features from the listing
+descriptions, and a district-level model for sparse locations.
+
+\section{Conclusion}
+Implementing both models from first principles and checking them against
+scikit-learn on toy problems and on real data showed that correct small
+implementations reproduce library behaviour closely. Careful cleaning
+(deduplicating scrapes, dropping target-derived columns, fixing every
+statistic on the training split) mattered as much as the choice of model.
+
+\section*{Contributions}
+Allahverdi, Yunis: Pegasos SVM and RFF, SVM experiments, cross-validated
+benchmark, slides. Gadirli, Ilaha: decision tree, tree experiments and
+error analysis. Kazimli, Fatime: data cleaning and split, metrics, EDA,
+\texttt{run\_all} integration and report assembly. Details are in
+\texttt{contribution\_report.md}.
+
+\section*{Tools and Acknowledgements}
+AI assistants were used by the team: OpenAI Codex for the decision-tree
+implementation, tests and its report section, and Anthropic Claude for the
+SVM implementation, the data pipeline, integration code and drafting
+report text. All members reviewed the AI-assisted code and text and are
+responsible for it. Baselines use scikit-learn~\cite{sklearn}.
+
+% =====================================================================
+\begin{thebibliography}{9}
+\bibitem{pegasos}
+S.~Shalev-Shwartz, Y.~Singer, N.~Srebro, and A.~Cotter,
+``Pegasos: primal estimated sub-gradient solver for SVM,''
+\emph{Mathematical Programming}, vol.~127, no.~1, pp.~3--30, 2011.
+\bibitem{rff}
+A.~Rahimi and B.~Recht, ``Random features for large-scale kernel machines,''
+in \emph{Advances in Neural Information Processing Systems}, vol.~20, 2007.
+\bibitem{sklearn}
+F.~Pedregosa \emph{et al.}, ``Scikit-learn: Machine learning in Python,''
+\emph{Journal of Machine Learning Research}, vol.~12, pp.~2825--2830, 2011.
+\end{thebibliography}
+
+\end{document}
